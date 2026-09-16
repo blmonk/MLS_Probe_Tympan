@@ -2,9 +2,10 @@
  * MLS_Probe_Tympan
  *
  * Created: Bryan Monk, June 2026
- * Purpose: Emit a 1023-sample Maximum Length Sequence (MLS) from the left earpiece
- *          receiver and record both the MLS reference signal and the left-earpiece
- *          PDM microphone response to a 2-channel WAV file on the SD card.
+ * Purpose: Emit a Maximum Length Sequence (MLS) from the left earpiece receiver and
+ *          record both the MLS reference signal and the left-earpiece PDM microphone
+ *          response to a 2-channel WAV file on the SD card. MLS length is selectable
+ *          at runtime from 1023 up to 65535 samples (2^n - 1); default is 1023.
  *
  *          Channel 0 (WAV left):  averaged left-earpiece PDM mic signal
  *          Channel 1 (WAV right): MLS reference signal sent to the speaker
@@ -16,6 +17,7 @@
  *   Send 'h' for the help menu.
  *   Key commands: p = start MLS, P = stop MLS, r = start recording, s = stop recording
  *   Amplitude: 'a <val>' sets A in [0.0, 1.0]; '+'/'-' nudge by 0.05
+ *   Length: 'len <val>' sets the MLS length, snapping to the nearest valid value
  *
  * MIT License. Use at your own risk.
  */
@@ -69,7 +71,7 @@ void setup() {
     myTympan.println("MLS_Probe_Tympan: Starting setup()...");
     myTympan.print("  Sample rate (Hz):  "); myTympan.println(sample_rate_Hz);
     myTympan.print("  Block size:        "); myTympan.println(audio_block_samples);
-    myTympan.print("  MLS length:        "); myTympan.println(AudioSynthMLS_F32::MLS_LENGTH);
+    myTympan.print("  MLS length:        "); myTympan.println(mlsSource.getLength());
 
     AudioMemory_F32(40, audio_settings);
 
@@ -166,6 +168,10 @@ float setInputGain_dB(float gain_dB) {
 void printSettings(void) {
     Serial.println("--- Current Settings ---");
     Serial.print("  MLS playback:   "); Serial.println(mlsSource.getEnable() ? "ON" : "OFF");
+    Serial.print("  MLS length:     "); Serial.print(mlsSource.getLength());
+    Serial.print(" (degree ");         Serial.print(mlsSource.getDegree());
+    Serial.print(", period ");         Serial.print(1000.0f * mlsSource.getLength() / sample_rate_Hz, 1);
+    Serial.println(" ms)");
     Serial.print("  Amplitude A:    "); Serial.println(mlsSource.getAmplitude(), 4);
     Serial.print("  Input gain:     "); Serial.print(input_gain_dB, 1);    Serial.println(" dB");
     Serial.print("  Output volume:  "); Serial.print(output_volume_dB, 1); Serial.println(" dB");

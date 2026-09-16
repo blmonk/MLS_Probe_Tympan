@@ -11,3 +11,7 @@ Thumbs.db
 # Editor / tooling
 .vscode/
 .claude/
+
+# Python (analysis/)
+__pycache__/
+*.pyc

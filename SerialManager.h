@@ -11,6 +11,7 @@ extern AudioSynthMLS_F32   mlsSource;
 extern AudioSDWriter_F32   audioSDWriter;
 extern bool                enable_printCPUandMemory;
 extern float               input_gain_dB;
+extern const float         sample_rate_Hz;
 extern void                setOutputVolume_dB(float);
 extern float               setInputGain_dB(float);
 extern void                printSettings(void);
@@ -57,6 +58,13 @@ void SerialManager::printHelp(void) {
     Serial.println("  P             : Stop MLS playback (outputs silence)");
     Serial.println("  a <val>       : Set amplitude A in [0.0, 1.0], e.g.  a 0.5");
     Serial.println("  + / -         : Increase / Decrease A by " + String(amplitudeStep, 2));
+    Serial.println("  len <val>     : Set MLS length in samples, e.g.  len 8000");
+    Serial.println("                  Snaps to the nearest valid length (stops playback).");
+    Serial.print(  "                  Valid lengths:");
+    for (int i = 0; i < AudioSynthMLS_F32::NUM_VARIANTS; i++) {
+        Serial.print(" " + String((unsigned long)AudioSynthMLS_F32::kVariants[i].length));
+    }
+    Serial.println();
     Serial.println();
     Serial.println("--- SD Recording ---");
     Serial.println("  r             : Start SD recording (ch0 = mic, ch1 = MLS reference)");
@@ -92,6 +100,17 @@ void SerialManager::processLine(void) {
     if (strncmp(lineBuf, "v ", 2) == 0) {
         float val = atof(lineBuf + 2);
         setOutputVolume_dB(val);
+        return;
+    }
+    if (strncmp(lineBuf, "len ", 4) == 0) {
+        int requested = atoi(lineBuf + 4);
+        int applied   = mlsSource.setLength(requested);
+        Serial.print("MLS length: requested "); Serial.print(requested);
+        Serial.print(" -> using ");             Serial.print(applied);
+        Serial.print(" (degree ");              Serial.print(mlsSource.getDegree());
+        Serial.print(", period ");              Serial.print(1000.0f * applied / sample_rate_Hz, 1);
+        Serial.println(" ms)");
+        Serial.println("Playback stopped by length change -- send 'p' to start.");
         return;
     }
 

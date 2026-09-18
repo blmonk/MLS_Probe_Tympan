@@ -11,7 +11,7 @@
  *          Channel 1 (WAV right): MLS reference signal sent to the speaker
  *
  * Hardware: Tympan RevE + EarpieceShield
- * Sample rate: 44100 Hz, block size: 128 (required for SD recording)
+ * Sample rate: 48000 Hz, block size: 128 (required for SD recording)
  *
  * Serial Monitor:
  *   Send 'h' for the help menu.
@@ -27,7 +27,7 @@
 
 // -------- Audio settings --------
 // NOTE: audio_block_samples MUST be 128 for AudioSDWriter_F32.
-const float sample_rate_Hz      = 44100.0f;
+const float sample_rate_Hz      = 48000.0f;
 const int   audio_block_samples = 128;
 AudioSettings_F32 audio_settings(sample_rate_Hz, audio_block_samples);
 

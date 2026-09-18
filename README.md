@@ -9,7 +9,7 @@ canal / middle ear probing).
 ## Hardware
 
 - Tympan RevE + EarpieceShield
-- Sample rate: 44100 Hz, block size: 128
+- Sample rate: 48000 Hz, block size: 128
 
 ## Output
 
@@ -39,9 +39,39 @@ The `analysis/` folder has Python scripts for post-processing recordings:
 
 - `mls_impulse.py` — deconvolves a recording into impulse responses. Requires
   `--mls_length` to match whatever length the firmware used for that recording.
+  Pass `--save_ir <file.npz>` to save the measurement (fs, mls_length, mean_ir,
+  all_irs, peak_idx) for later PCA training; add `--no_plot` for batch/headless
+  processing of many recordings.
+- `train_pca_feedback_model.py` — fits a PCA model across multiple `--save_ir`
+  measurements (ideally from physically distinct conditions: insertion depth,
+  vent size, subject/coupler, environment) and writes a `pca_model.csv` model
+  file. See `AudioPassThru_FeedbackPEMAFC_ConstrainedPCA` (sibling Arduino project)
+  for the constrained-adaptation AFC that loads this file from the SD card and
+  restricts the adaptive feedback-path estimate to that PCA subspace.
 - `split_channels.py` — splits a 2-channel WAV into separate mic/reference mono files.
 
-Both require `numpy`; `mls_impulse.py` also needs `matplotlib` and (optionally) `scipy`.
+Both `mls_impulse.py` and `train_pca_feedback_model.py` need `numpy` and
+`matplotlib` (unless run with `--no_plot`); `mls_impulse.py` also optionally
+uses `scipy` for `--highpass` filtering.
+
+Typical workflow to build a constrained-AFC model:
+
+```
+# 1. Record one MLS measurement per physical condition with MLS_Probe_Tympan
+#    (reposition earpiece / change vent / etc. between recordings).
+
+# 2. Extract + save each measurement's impulse response:
+python mls_impulse.py rec1.wav --mls_length 1023 --save_ir rec1.npz --no_plot
+python mls_impulse.py rec2.wav --mls_length 1023 --save_ir rec2.npz --no_plot
+...
+
+# 3. Fit the PCA model across all measurements:
+python train_pca_feedback_model.py rec*.npz --afl 256 --out pca_model.csv
+
+# 4. Copy pca_model.csv to the Tympan's SD card and load it in
+#    AudioPassThru_FeedbackPEMAFC_ConstrainedPCA ('load pca_model.csv', or set as
+#    the sketch's default).
+```
 
 ## License
 

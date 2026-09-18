@@ -27,6 +27,7 @@ script always requires it to be stated explicitly.
 """
 
 import argparse
+import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
@@ -172,6 +173,18 @@ def main():
     parser.add_argument("--highpass",   type=float,  default=None,
                         help="Apply a 4th-order zero-phase Butterworth high-pass filter to the "
                              "mic channel before computing IRs, e.g. --highpass 100")
+    parser.add_argument("--save_ir",    type=str,    default=None,
+                        help="Save this measurement's impulse responses to an .npz file "
+                             "(fs, mls_length, mean_ir, all_irs, peak_idx) for later use by "
+                             "train_pca_feedback_model.py. One file per recording/condition.")
+    parser.add_argument("--no_plot",    action="store_true",
+                        help="Skip plotting. Useful with --save_ir when batch-processing many "
+                             "recordings to build a PCA training set.")
+    parser.add_argument("--plot_each_dir", type=str, default=None,
+                        help="Save one PNG per individual impulse response into this directory "
+                             "(created if needed), named ir_0001.png, ir_0002.png, etc. Use this "
+                             "instead of the combined stacked-subplot figure when --n_impulses is "
+                             "large (that figure becomes impractical past a few dozen periods).")
     args = parser.parse_args()
 
     mls_length = args.mls_length
@@ -265,6 +278,38 @@ def main():
     print(f"\nPeak delay per IR (ms): {np.round(1000.0 * peak_idx / fs, 3).tolist()}")
     print(f"Mean peak delay        : {1000.0 * np.mean(peak_idx) / fs:.3f} ms")
 
+    hp_tag = f", HP {args.highpass:.0f} Hz" if args.highpass else ""
+
+    # ── Save for PCA training ─────────────────────────────────────────────────
+    if args.save_ir:
+        np.savez(args.save_ir,
+                 fs=fs, mls_length=mls_length,
+                 mean_ir=mean_IR, all_irs=IRs, peak_idx=peak_idx)
+        print(f"\nSaved   : {args.save_ir}  (fs, mls_length, mean_ir, all_irs, peak_idx)")
+
+    # ── Save one plot per individual impulse response ─────────────────────────
+    if args.plot_each_dir:
+        os.makedirs(args.plot_each_dir, exist_ok=True)
+        n_digits = len(str(n_collect))
+        for k, h in enumerate(IRs):
+            pk = int(np.argmax(np.abs(h[:n_plot])))
+            fig, ax = plt.subplots(figsize=(8, 3))
+            ax.plot(t_show, h[:n_plot], lw=0.8, color="steelblue")
+            ax.axhline(0, color="k", lw=0.4)
+            ax.axvline(t_show[pk], color="tomato", lw=0.8, ls="--", alpha=0.7)
+            ax.set_xlabel("Time (ms)")
+            ax.set_ylabel("Amplitude")
+            ax.set_title(f"IR #{args.skip + k + 1}{hp_tag} — peak {t_show[pk]:.3f} ms", fontsize=9)
+            ax.grid(True, alpha=0.3)
+            plt.tight_layout()
+            fname = os.path.join(args.plot_each_dir, f"ir_{k+1:0{n_digits}d}.png")
+            fig.savefig(fname, dpi=100)
+            plt.close(fig)
+        print(f"\nSaved   : {n_collect} individual impulse plots to {args.plot_each_dir}/")
+
+    if args.no_plot:
+        return
+
     # ── Figure 1: stacked individual IRs ─────────────────────────────────────
     fig1, axes = plt.subplots(
         n_collect, 1,
@@ -284,7 +329,6 @@ def main():
         ax.axvline(t_show[pk], color="tomato", lw=0.8, ls="--", alpha=0.7)
 
     axes[-1].set_xlabel("Time (ms)")
-    hp_tag = f", HP {args.highpass:.0f} Hz" if args.highpass else ""
     fig1.suptitle(f"MLS Impulse Responses (individual{hp_tag}) — {args.wav_file}", fontsize=11)
     plt.tight_layout()
 

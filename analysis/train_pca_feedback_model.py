@@ -74,6 +74,56 @@ def window_around_peak(ir, afl, pre_peak):
     return out, peak
 
 
+def fit_pca(windows, n_components=None, var_explained=0.95, device_max_components=16):
+    """
+    Fit a PCA model from a list/array of equal-length windows (n_measurements
+    x afl). Returns (mean_ir, components, ratio, cumulative, K):
+      mean_ir     -- (afl,) centering vector
+      components  -- (K, afl) unit-norm PCA basis rows (Vt[:K] from SVD)
+      ratio       -- (n_avail,) fraction of variance explained per component
+      cumulative  -- (n_avail,) cumulative sum of `ratio`
+      K           -- number of components kept
+
+    Pure numerical step, agnostic to how the windows were constructed --
+    callers decide the windowing convention (peak-anchored, zero-lag
+    truncation, etc.) before calling this.
+    """
+    X = np.stack(windows, axis=0)
+    n = X.shape[0]
+
+    mean_ir = X.mean(axis=0)
+    Xc = X - mean_ir
+    U, S, Vt = np.linalg.svd(Xc, full_matrices=False)
+
+    n_avail = Vt.shape[0]
+    explained_var = (S ** 2) / max(n - 1, 1)
+    total_var = explained_var.sum()
+    ratio = explained_var / total_var if total_var > 0 else explained_var
+    cumulative = np.cumsum(ratio)
+
+    if n_components is not None:
+        K = min(n_components, n_avail)
+    else:
+        K = int(np.searchsorted(cumulative, var_explained) + 1)
+        K = min(K, n_avail)
+    if K > device_max_components:
+        K = device_max_components
+    K = max(K, 1)
+
+    components = Vt[:K]  # (K, afl), already unit-norm rows from SVD
+    return mean_ir, components, ratio, cumulative, K
+
+
+def write_pca_csv(path, afl, mean_ir, components):
+    """Write a pca_model.csv: line1 'afl,K'; line2 mean_ir; then K component rows."""
+    K = len(components)
+    with open(path, "w") as f:
+        f.write(f"{afl},{K}\n")
+        f.write(",".join(f"{v:.8e}" for v in mean_ir) + "\n")
+        for k in range(K):
+            f.write(",".join(f"{v:.8e}" for v in components[k]) + "\n")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description=__doc__,
@@ -167,31 +217,10 @@ def main():
               "increasing --pre_peak.")
 
     # ── PCA via SVD ───────────────────────────────────────────────────────────
-    mean_ir_model = X.mean(axis=0)
-    Xc = X - mean_ir_model
-    U, S, Vt = np.linalg.svd(Xc, full_matrices=False)
-
-    n_avail = Vt.shape[0]
-    explained_var = (S ** 2) / max(n - 1, 1)
-    total_var = explained_var.sum()
-    ratio = explained_var / total_var if total_var > 0 else explained_var
-    cumulative = np.cumsum(ratio)
-
-    if args.n_components is not None:
-        K = min(args.n_components, n_avail)
-    else:
-        K = int(np.searchsorted(cumulative, args.var_explained) + 1)
-        K = min(K, n_avail)
-    if K > args.device_max_components:
-        print(f"WARNING: requested/needed K={K} exceeds --device_max_components "
-              f"{args.device_max_components}; clipping. Explained variance will be lower "
-              f"than requested. Either collect more distinct measurements to reduce K's "
-              f"requirement, or raise MAX_PCA_COMPONENTS on the device and re-run with a "
-              f"higher --device_max_components.")
-        K = args.device_max_components
-    K = max(K, 1)
-
-    components = Vt[:K]  # (K, afl), already unit-norm rows from SVD
+    mean_ir_model, components, ratio, cumulative, K = fit_pca(
+        windows, n_components=args.n_components, var_explained=args.var_explained,
+        device_max_components=args.device_max_components)
+    n_avail = len(ratio)
 
     print("\nExplained variance by component:")
     for k in range(n_avail):
@@ -201,11 +230,7 @@ def main():
           f"(cumulative explained variance = {cumulative[K-1]*100:.2f}%)")
 
     # ── Write model file ──────────────────────────────────────────────────────
-    with open(args.out, "w") as f:
-        f.write(f"{args.afl},{K}\n")
-        f.write(",".join(f"{v:.8e}" for v in mean_ir_model) + "\n")
-        for k in range(K):
-            f.write(",".join(f"{v:.8e}" for v in components[k]) + "\n")
+    write_pca_csv(args.out, args.afl, mean_ir_model, components)
 
     print(f"\nWrote  : {args.out}")
     print(f"         Copy this file to the Tympan's SD card and load it with "

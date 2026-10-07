@@ -1,0 +1,119 @@
+{
+  "timestamp_utc": "2026-10-02T12:57:55.884863+00:00",
+  "source_npz_path": "data/self/AUDIO001_ir_hp100.npz",
+  "cli_args": {
+    "npz_path": "data/self/AUDIO001_ir_hp100.npz",
+    "afl": 512,
+    "block_size": 32,
+    "n_train": 40,
+    "n_eval": 1,
+    "min_quality_percentile": 50.0,
+    "seed": 0,
+    "epoch_duration": 90.0,
+    "signal": "white",
+    "wav_path": null,
+    "signal_amplitude": 0.1,
+    "variants": "pemafc_f,pemafc_a",
+    "n_components_active": null,
+    "reset_between_epochs": false,
+    "misalignment_threshold_db": -20.0,
+    "ir_truncate_len": 2048,
+    "loop_mode": "open",
+    "gain_db": 0.0,
+    "saturation_limit": 1.0,
+    "msg_fft_oversample": 32,
+    "msg_interval_s": null,
+    "metrics_interval_s": 0.05,
+    "var_explained": 0.95,
+    "device_max_components": 16,
+    "mu": 0.001,
+    "delta": 0.001,
+    "alpha": 0.9,
+    "ar_order": 12,
+    "ar_block_len": 640,
+    "ar_reg": 1e-05,
+    "out_dir": "afc_sim/results/long_convergence_check",
+    "save_wav_dir": null
+  },
+  "algorithm_names": [
+    "PEMAFC-F",
+    "PEMAFC-A"
+  ],
+  "pca_fit_info": null,
+  "config": {
+    "fs": 48000.0,
+    "block_size": 32,
+    "forward_signal_spec": {
+      "kind": "white",
+      "seed": 0,
+      "amplitude": 0.1,
+      "wav_path": null
+    },
+    "epochs": [
+      {
+        "condition_id": "period_0779",
+        "duration_s": 90.0
+      }
+    ],
+    "metrics_interval_s": 0.05,
+    "reset_between_epochs": false,
+    "misalignment_threshold_db": -20.0,
+    "loop_mode": "open",
+    "gain_db": 0.0,
+    "saturation_limit": 1.0
+  },
+  "train_condition_ids": [
+    "period_0943",
+    "period_1048",
+    "period_0597",
+    "period_0830",
+    "period_0982",
+    "period_0489",
+    "period_0663",
+    "period_0298",
+    "period_0394",
+    "period_0898",
+    "period_0443",
+    "period_1201",
+    "period_0327",
+    "period_0969",
+    "period_0836",
+    "period_0971",
+    "period_0662",
+    "period_0887",
+    "period_0273",
+    "period_0340",
+    "period_0063",
+    "period_0706",
+    "period_1065",
+    "period_0285",
+    "period_0692",
+    "period_0932",
+    "period_0713",
+    "period_0278",
+    "period_0918",
+    "period_0757",
+    "period_0993",
+    "period_0334",
+    "period_0452",
+    "period_0389",
+    "period_0858",
+    "period_0707",
+    "period_0566",
+    "period_0609",
+    "period_0473",
+    "period_0946"
+  ],
+  "eval_condition_ids": [
+    "period_0779"
+  ],
+  "convergence_time_s": {
+    "PEMAFC-F/epoch0_period_0779": null,
+    "PEMAFC-A/epoch0_period_0779": 24.6
+  },
+  "saturated_fraction": null,
+  "msg_without_afc_db": {
+    "PEMAFC-F/epoch0_period_0779": 84.37083293508364,
+    "PEMAFC-A/epoch0_period_0779": 84.37083293508364
+  }
+}

@@ -1,0 +1,14 @@
+Condition: period_0857, afl=128, duration=1.0s
+
+amplitude \ gain_db      40      45      50      55      60      65      70      75      80
+1.0e-06                   0.0     0.1     0.2     0.5     1.0     1.2     0.8    11.4    SAT 
+1.0e-05                  13.8    weak    13.9    10.8     7.0     3.7     1.4    11.1    SAT 
+1.0e-04                  weak    weak    weak    11.7     7.3     3.8     1.4    SAT     SAT 
+3.0e-04                  weak    weak    weak    11.7     7.4    SAT     SAT     SAT     SAT 
+1.0e-03                  weak    weak    weak    SAT     SAT     SAT     SAT     SAT     SAT 
+
+Legend: number = final misalignment (dB, lower=better) in the usable region;
+'SAT' = >5% samples saturated (clipping-dominated, not real loop dynamics);
+'weak' = misalignment >15dB with no saturation (feedback signal too weak to learn from).
+
+Best usable point: amplitude=1e-06, gain_db=40 -> misalignment=0.05 dB, saturated=0.0%
